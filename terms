@@ -1,0 +1,201 @@
+State
+StateGraph
+Node
+Edge
+Conditional Edge
+START
+END
+Reducer
+Checkpoint
+Checkpointer
+Thread
+Persistence
+Interrupt
+Command
+Resume
+Durable Execution
+Human-in-the-loop
+Time Travel
+Subgraph
+Functional API
+Graph API
+Streaming
+
+PART 39 — 25 Questions You MUST Prepare
+Beginner
+What is LangChain?
+What is LangGraph?
+LangChain vs LangGraph?
+What is an LLM?
+What is a chat model?
+What are messages?
+What is a prompt template?
+What is LCEL?
+What is Runnable?
+What is a tool?
+Intermediate
+What is tool calling?
+What is an agent?
+Agent vs chain?
+What is structured output?
+What is RAG?
+What is a retriever?
+Vector DB vs SQL DB?
+What are embeddings?
+Why chunk documents?
+How do you reduce RAG hallucinations?
+Advanced
+What is LangGraph State?
+What is a node?
+What is a conditional edge?
+What is a reducer?
+What is checkpointing?
+What is thread_id?
+How does memory work?
+How does HITL work?
+What is durable execution?
+What is time travel?
+Graph API vs Functional API?
+What are subgraphs?
+How do you build multi-agent systems?
+How do you handle tool failures?
+How do you evaluate an agent?
+PART 40 — The 10 Answers You Should Memorize
+
+If you have limited preparation time, memorize these:
+
+1. LangChain
+
+Framework for building LLM applications using models, prompts, tools, retrieval, structured output and agents.
+
+2. LangGraph
+
+Low-level runtime for orchestrating stateful, long-running agent workflows with state, routing, persistence, durable execution and human-in-the-loop.
+
+3. Agent
+
+An LLM-driven system that dynamically decides which tools/actions to use to accomplish a goal.
+
+4. RAG
+
+Retrieval-Augmented Generation retrieves relevant external information and supplies it to the LLM as context before generation.
+
+5. Tool
+
+A callable function exposed to an LLM so it can interact with external systems or perform deterministic operations.
+
+6. State
+
+Shared execution context containing the information required by graph nodes to make decisions and produce updates.
+
+7. Checkpointer
+
+Persistence mechanism that saves graph state at execution steps, enabling memory, recovery, HITL and time travel.
+
+8. Thread
+
+Persistent execution identity used to associate checkpoints with a conversation/workflow.
+
+9. HITL
+
+A workflow pattern where execution pauses for human review and resumes after the human provides a decision.
+
+10. LangSmith
+
+Observability and evaluation platform used to trace, debug and evaluate LLM and agent executions.
+
+🏆 Final Mental Model
+
+If you remember nothing else, remember this:
+
+                 ┌────────────────────────┐
+                 │          LLM           │
+                 └───────────┬────────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │    LangChain    │
+                    │                 │
+                    │ Models          │
+                    │ Prompts         │
+                    │ Tools           │
+                    │ RAG             │
+                    │ Agents          │
+                    │ Structured Data │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │    LangGraph    │
+                    │                 │
+                    │ State           │
+                    │ Nodes           │
+                    │ Edges           │
+                    │ Loops           │
+                    │ Routing         │
+                    │ Memory          │
+                    │ Persistence     │
+                    │ Interrupts      │
+                    │ HITL            │
+                    │ Durable Exec    │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │    LangSmith    │
+                    │                 │
+                    │ Trace           │
+                    │ Debug           │
+                    │ Evaluate        │
+                    │ Monitor         │
+                    └─────────────────┘
+
+And the one-line relationship:
+
+LangChain gives you the building blocks for LLM applications; LangGraph gives you control over how stateful agents execute; LangSmith lets you observe and evaluate them.
+
+Your interview preparation priority
+
+Given your AI Engineer target, I would prioritize:
+
+Tier 1 — Must know
+
+LLMs
+Prompting
+Tool calling
+Agents
+RAG
+Embeddings
+Vector DB
+Structured output
+LangChain
+LangGraph StateGraph
+
+Tier 2 — Strong candidate
+
+Conditional routing
+Reducers
+Memory
+Checkpointers
+thread_id
+HITL
+Interrupt/Command
+Streaming
+Async
+Subgraphs
+
+Tier 3 — Production AI Engineer
+
+LangSmith
+Evaluation
+Guardrails
+Retries
+Caching
+Rate limits
+Cost optimization
+Multi-agent architecture
+FastAPI
+PostgreSQL
+Vector DB
+Docker
+Deployment
