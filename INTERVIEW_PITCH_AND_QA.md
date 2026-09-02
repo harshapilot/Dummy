@@ -11,6 +11,7 @@ This document is your **complete, battle-tested interview master guide**. It equ
 4. [Top 30 Technical Interview Questions & Standout Answers](#4-top-30-technical-interview-questions--standout-answers)
 5. [Real-World Scenarios & Curveball Questions](#5-real-world-scenarios--curveball-questions)
 6. [Key Engineering Trade-offs & Future Improvements](#6-key-engineering-trade-offs--future-improvements)
+7. [Essential LangGraph Glossary (Concepts Used in This Project)](#7-essential-langgraph-glossary-concepts-used-in-this-project)
 
 ---
 
@@ -297,3 +298,90 @@ When interviewers ask: *"What trade-offs did you make and what would you improve
 - **Token Pruning:** `extract_itinerary_skeleton()` cuts 80%+ tokens during multi-turn revisions.
 - **Math:** Kept deterministic in `allocate_budget()` to eliminate LLM arithmetic hallucinations.
 - **Resilience:** Fallback cascades across Weather (Open-Meteo -> Mock), Search (Tavily -> Serper -> Mock), and Generation (LLM -> Template).
+
+---
+
+## 7. Essential LangGraph Glossary (Concepts Used in This Project)
+
+Use these 1–2 line explanations to quickly learn, review, and speak the exact LangGraph dialect in your interview:
+
+1. **`StateGraph`**
+   - The primary builder class in LangGraph used to construct a state machine workflow parameterized by a shared state schema.
+   - *In code:* `builder = StateGraph(TravelPlanState)` in `workflow.py`.
+
+2. **`State` (`TravelPlanState`)**
+   - The shared, central data structure (defined as a Python `TypedDict`) that acts as a blackboard passed between every node in the graph.
+   - *In code:* Contains channels like `destination`, `research_data`, and `draft_itinerary` in `state.py`.
+
+3. **`Channels`**
+   - The individual typed keys/fields inside the State schema that hold specific slices of data.
+   - *In code:* `user_feedback: str`, `status: str`, and `research_data: Dict[str, Any]`.
+
+4. **`Nodes` (`builder.add_node`)**
+   - Individual Python functions or agents that receive the current state, perform specialized work (e.g. call APIs, run LLMs, calculate budgets), and return a dictionary of state updates.
+   - *In code:* `orchestrator_input`, `research_agent`, `planner_agent`, `hitl_review_node`, `finalizer_node`.
+
+5. **`Edges` (`builder.add_edge`)**
+   - Fixed, directed links that unconditionally pass execution control from the output of one node to the input of the next node.
+   - *In code:* `builder.add_edge("research_agent", "planner_agent")`.
+
+6. **`START` and `END`**
+   - Built-in virtual nodes marking the graph's official entry point (`START`) and the final terminal state (`END`).
+   - *In code:* `builder.add_edge(START, "orchestrator_input")` and `builder.add_edge("finalizer_node", END)`.
+
+7. **`Conditional Edges` (`builder.add_conditional_edges`)**
+   - Dynamic decision branches where LangGraph calls a routing function to evaluate current state values and dynamically choose which node to run next.
+   - *In code:* Connects `hitl_review_node` dynamically to either `research_agent`, `planner_agent`, or `finalizer_node`.
+
+8. **`Router Function` (`route_after_review`)**
+   - A deterministic Python function called by a conditional edge that inspects state (e.g. `state["next_route"]`) and returns the exact string name of the next destination node.
+   - *In code:* Defined in `workflow.py` to route based on user feedback intent.
+
+9. **`Checkpointer` (`MemorySaver`)**
+   - The persistence engine that serializes and saves a complete snapshot of the graph's state after every node executes, indexed by thread.
+   - *In code:* `memory = MemorySaver()` passed to `builder.compile(checkpointer=memory)`.
+
+10. **`thread_id` (`config={"configurable": {"thread_id": ...}}`)**
+    - The unique partition key (our UUID `plan_id`) that isolates one user's multi-step execution session from all other concurrent users in the checkpointer.
+    - *In code:* Passed to `workflow.invoke()` and `workflow.get_state()` in `main.py`.
+
+11. **`Compile` (`builder.compile(...)`)**
+    - Freezes the graph topology, binds the checkpointer, registers breakpoints, and outputs an executable `CompiledGraph` ready for execution.
+    - *In code:* `compiled_graph = builder.compile(checkpointer=memory, interrupt_before=[...])`.
+
+12. **`Breakpoints` / `interrupt_before`**
+    - A compile-time instruction telling the LangGraph engine to pause execution immediately before executing a specific node and release the compute thread.
+    - *In code:* `interrupt_before=["hitl_review_node"]` stops the workflow so the user can inspect the draft.
+
+13. **`Human-in-the-Loop (HITL)`**
+    - An architectural pattern where autonomous graph execution pauses at a breakpoint, allowing a human to review, approve, or edit the plan before continuing.
+    - *In code:* The interaction between `interrupt_before`, `GET /plan/{id}`, and `POST /plan/{id}/review`.
+
+14. **`invoke()` (`workflow.invoke(state, config)`)**
+    - The execution method that starts running the graph synchronously for a given thread, continuing until it hits a breakpoint or reaches `END`.
+    - *In code:* Called in `POST /plan` to run nodes 1, 2, and 3 up to the breakpoint.
+
+15. **`Resumption with None` (`workflow.invoke(None, config)`)**
+    - Passing `None` as the first argument to `invoke` instructs LangGraph to resume execution from the paused breakpoint using the existing thread state stored in the checkpointer.
+    - *In code:* Called in `POST /plan/{id}/review` after updating state with user feedback.
+
+16. **`get_state()` (`workflow.get_state(config)`)**
+    - Queries the checkpointer to read the latest `StateSnapshot` for a given `thread_id` without executing any nodes.
+    - *In code:* Used in `GET /plan/{id}` and `main.py` to inspect the plan and check if it is paused.
+
+17. **`StateSnapshot` (`state_snapshot.values` & `state_snapshot.next`)**
+    - The frozen state object returned by `get_state()`; `.values` contains the current state dictionary, and `.next` is a tuple naming the nodes waiting to run next.
+    - *In code:* If `"hitl_review_node" in state_snapshot.next[0]`, the workflow is currently paused awaiting review.
+
+18. **`update_state()` (`workflow.update_state(config, {...})`)**
+    - Manually injects or overrides state channel values for a paused thread in the checkpointer before resuming execution.
+    - *In code:* Used in `POST /plan/{id}/review` to write `user_feedback` and `feedback_status` into the graph.
+
+19. **`Reducers / Channel Merging`**
+    - The rule defining how a node's returned dictionary updates the state; in our project, keys are overwritten by default with the latest node return values.
+    - *In code:* Each node returns a partial delta dictionary (e.g. `{"status": "research_completed"}`) which LangGraph merges into `TravelPlanState`.
+
+20. **`Cyclic Graph`**
+    - A non-linear workflow topology with feedback loops that can route backward to earlier nodes—a key capability of LangGraph that standard DAG chains cannot achieve.
+    - *In code:* Our review node looping back to `research_agent` (Node 2) or `planner_agent` (Node 3) whenever revisions are requested.
+
